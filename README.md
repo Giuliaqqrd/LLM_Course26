@@ -141,10 +141,10 @@ git checkout main
 # scarica gli aggiornamenti
 git pull upstream main
 
-# torna su solutions
-git checkout solutions
+# torna su dev
+git checkout dev
 
-# porta i nuovi file su solutions
+# porta i nuovi file su dev
 git merge main
 ```
 
@@ -155,7 +155,7 @@ Lavora normalmente sui file. Quando vuoi salvare:
 ```bash
 git add .
 git commit -m "lezione 1: completato tokenizer e data"
-git push origin solutions
+git push origin dev
 ```
 
 ---
