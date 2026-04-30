@@ -1,11 +1,11 @@
-# data/dataset.py
+# data/translation.py
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from datasets import load_dataset
 from transformers import AutoTokenizer
-from config import MODEL, MAX_INPUT_LENGTH, MAX_TARGET_LENGTH, MAX_TRAIN_SAMPLES, MAX_EVAL_SAMPLES, get_task_config
+from config import MODEL, MAX_INPUT_LENGTH, MAX_TRAIN_SAMPLES, MAX_EVAL_SAMPLES, SEED, get_task_config
 
 
 def load_and_tokenize():
@@ -14,14 +14,34 @@ def load_and_tokenize():
     tokenizer = AutoTokenizer.from_pretrained(MODEL)
 
     dataset = load_dataset(task_cfg["name"], task_cfg["config"])
+
+    # opus_books non ha validation split, lo creiamo dividendo il train
+    # prima divisione: 80% train, 20% temp
+    split1 = dataset["train"].train_test_split(test_size=0.2, seed=SEED)
+    # seconda divisione: temp -> 50% validation, 50% test
+    split2 = split1["test"].train_test_split(test_size=0.5, seed=SEED)
+
+    dataset["train"]      = split1["train"]
+    dataset["validation"] = split2["train"]
+    dataset["test"]       = split2["test"]
     print(f"train: {len(dataset['train'])} — validation: {len(dataset['validation'])}")
 
+    # taglia prima del map
+    if MAX_TRAIN_SAMPLES:
+        dataset["train"]      = dataset["train"].select(range(MAX_TRAIN_SAMPLES))
+    if MAX_EVAL_SAMPLES:
+        dataset["validation"] = dataset["validation"].select(range(MAX_EVAL_SAMPLES))
+
     def tokenize_function(examples):
-        inputs = [task_cfg["prefix"] + t for t in examples[task_cfg["input_col"]]]
+        # struttura annidata: examples["translation"] = [{"en": "...", "it": "..."}, ...]
+        inputs  = [task_cfg["prefix"] + t[task_cfg["input_key"]]
+                   for t in examples[task_cfg["input_col"]]]
+        targets = [t[task_cfg["target_key"]]
+                   for t in examples[task_cfg["target_col"]]]
 
         model_inputs = tokenizer(
             inputs,
-            text_target=examples[task_cfg["target_col"]],
+            text_target=targets,
             truncation=True,
             max_length=MAX_INPUT_LENGTH,
             padding=False,
@@ -39,11 +59,6 @@ def load_and_tokenize():
         batched=True,
         remove_columns=dataset["train"].column_names,
     )
-
-    if MAX_TRAIN_SAMPLES:
-        tokenized_dataset["train"] = tokenized_dataset["train"].select(range(MAX_TRAIN_SAMPLES))
-    if MAX_EVAL_SAMPLES:
-        tokenized_dataset["validation"] = tokenized_dataset["validation"].select(range(MAX_EVAL_SAMPLES))
 
     return tokenized_dataset, tokenizer
 

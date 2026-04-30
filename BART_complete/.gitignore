@@ -1,0 +1,7 @@
+checkpoints/
+__pycache__/
+*.pyc
+.env
+.venv/
+*.pt
+*.safetensors

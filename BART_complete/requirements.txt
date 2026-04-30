@@ -1,0 +1,11 @@
+torch
+transformers
+datasets
+evaluate
+accelerate>=1.1.0
+rouge-score
+nltk
+absl-py
+bert-score
+matplotlib
+sacrebleu

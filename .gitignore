@@ -2,6 +2,7 @@
 encoderonly_complete/
 checkpoints/
 distillbert_sst2/
+BART/
 
 # Python
 __pycache__/
